@@ -19,9 +19,6 @@ def validate_image_info(img: Dict) -> bool:
 
 def process_dataset(data_dir: str, output_dir: str, dataset_type: str) -> Tuple[List[Dict], List[Dict]]:
     """Process the dataset and prepare it for SAM2 training."""
-    images_dir = os.path.join(data_dir, 'images')
-    jsons_dir = os.path.join(data_dir, 'jsons')
-    
     # Create output directories
     output_images_dir = os.path.join(output_dir, dataset_type, 'images')
     output_annotations_dir = os.path.join(output_dir, dataset_type, 'annotations')
@@ -36,7 +33,7 @@ def process_dataset(data_dir: str, output_dir: str, dataset_type: str) -> Tuple[
     }
     
     # Process each JSON file and maintain image-annotation correspondence
-    json_files = [f for f in os.listdir(jsons_dir) if f.endswith('.json') and f != 'consolidated_annotations.json']
+    json_files = [f for f in os.listdir(os.path.join(data_dir, 'jsons')) if f.endswith('.json')]
     
     # First, create a mapping from image filename to new image ID
     filename_to_id = {}
@@ -45,10 +42,14 @@ def process_dataset(data_dir: str, output_dir: str, dataset_type: str) -> Tuple[
     
     print(f"\nProcessing {dataset_type} dataset...")
     for json_file in tqdm(json_files, desc=f"Processing {dataset_type} files"):
-        json_path = os.path.join(jsons_dir, json_file)
+        json_path = os.path.join(data_dir, 'jsons', json_file)
         
-        with open(json_path, 'r') as f:
-            data = json.load(f)
+        try:
+            with open(json_path, 'r') as f:
+                data = json.load(f)
+        except json.JSONDecodeError:
+            print(f"Error: Invalid JSON file: {json_file}")
+            continue
         
         # Validate image info
         if not validate_image_info(data['image']):
@@ -62,7 +63,7 @@ def process_dataset(data_dir: str, output_dir: str, dataset_type: str) -> Tuple[
             continue
             
         # Copy image to output directory
-        src_img_path = os.path.join(images_dir, img_name)
+        src_img_path = os.path.join(data_dir, 'images', img_name)
         if not os.path.exists(src_img_path):
             print(f"Warning: Image file not found: {src_img_path}")
             continue
@@ -97,34 +98,29 @@ def process_dataset(data_dir: str, output_dir: str, dataset_type: str) -> Tuple[
     # Save the processed dataset
     output_json = os.path.join(output_annotations_dir, 'dataset.json')
     with open(output_json, 'w') as f:
-        json.dump(dataset, f)
-    
-    print(f"\n{dataset_type} dataset statistics:")
-    print(f"Number of unique images: {len(dataset['images'])}")
-    print(f"Number of annotations: {len(dataset['annotations'])}")
-    print(f"Average annotations per image: {len(dataset['annotations']) / len(dataset['images']):.2f}")
+        json.dump(dataset, f, indent=2)
     
     return dataset['images'], dataset['annotations']
 
 def main():
     # Set up paths
-    base_dir = '/Users/aidanquigley/Documents/SAM2.small'
-    output_dir = 'processed_data'
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(base_dir, 'data')
+    output_dir = os.path.join(base_dir, 'processed_data')
     
-    # Process train dataset
-    train_dir = os.path.join(base_dir, 'Train')
-    print("\nStarting train data preparation...")
-    train_images, train_annotations = process_dataset(train_dir, output_dir, 'train')
-    
-    # Process validate dataset
-    validate_dir = os.path.join(base_dir, 'Validate')
-    print("\nStarting validate data preparation...")
-    validate_images, validate_annotations = process_dataset(validate_dir, output_dir, 'validate')
-    
-    print(f"\nProcessing complete!")
-    print(f"Train dataset: {len(train_images)} images, {len(train_annotations)} annotations")
-    print(f"Validate dataset: {len(validate_images)} images, {len(validate_annotations)} annotations")
-    print(f"Output directory: {output_dir}")
+    # Process each dataset
+    for dataset_type in ['train', 'validate', 'test']:
+        dataset_path = os.path.join(data_dir, dataset_type)
+        if not os.path.exists(dataset_path):
+            print(f"Warning: {dataset_type} directory not found at {dataset_path}")
+            continue
+            
+        images, annotations = process_dataset(dataset_path, output_dir, dataset_type)
+        print(f"\n{dataset_type.capitalize()} Dataset Summary:")
+        print(f"Total images: {len(images)}")
+        print(f"Total annotations: {len(annotations)}")
+        if len(images) > 0:
+            print(f"Average annotations per image: {len(annotations)/len(images):.2f}")
 
 if __name__ == "__main__":
     main() 

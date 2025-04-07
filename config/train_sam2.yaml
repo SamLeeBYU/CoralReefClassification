@@ -6,9 +6,9 @@ trainer:
   optimizer: Adam
 
 data:
-  train_path: processed_data/train
-  val_path: processed_data/validate
-  test_path: /Users/aidanquigley/Documents/SAM2.small/Test
+  train_path: data/train
+  val_path: data/validate
+  test_path: data/test
 
 launcher:
   gpus_per_node: 1
