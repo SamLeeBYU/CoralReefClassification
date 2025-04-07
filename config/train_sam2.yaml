@@ -1,0 +1,54 @@
+trainer:
+  model: sam2.1_hiera_small
+  learning_rate: 0.001
+  batch_size: 16
+  epochs: 10
+  optimizer: Adam
+
+data:
+  train_path: processed_data/train
+  val_path: processed_data/validate
+  test_path: /Users/aidanquigley/Documents/SAM2.small/Test
+
+launcher:
+  gpus_per_node: 1
+  num_nodes: 1
+  experiment_log_dir: ./sam2_logs
+
+# Additional SAM2 specific settings
+model:
+  image_size: 1024
+  mask_threshold: 0.0
+  backbone:
+    type: "tiny_vit"
+    drop_path_rate: 0.0
+    checkpoint: ""  # Will be filled with pretrained SAM2 checkpoint
+  neck:
+    type: "sam2_prompt_encoder"
+    hidden_dim: 256
+    image_embedding_size: [64, 64]
+    input_image_size: [1024, 1024]
+  head:
+    type: "sam2_mask_decoder"
+    hidden_dim: 256
+    iou_head_depth: 3
+    iou_head_hidden_dim: 256
+
+train_dataset:
+  type: "json_dataset"
+  sample_rate: 1
+  rm_unannotated: True
+  ann_every: 1
+  frames_fps: 24
+
+val_dataset:
+  type: "json_dataset"
+  sample_rate: 1
+  rm_unannotated: True
+  ann_every: 1
+  frames_fps: 24
+
+output_dir: "outputs/sam2_coral"
+checkpoint_dir: "checkpoints"
+log_dir: "logs"
+seed: 42 
