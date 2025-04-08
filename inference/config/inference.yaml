@@ -1,0 +1,14 @@
+# Inference Configuration for SAM2.1 Coral Segmentation
+
+data:
+  input_dir: "data/"  # Directory containing unlabeled images
+  output_dir: "outputs/"  # Directory for saving generated masks
+
+model:
+  type: "vit_h"  # Model type (vit_h, vit_l, or vit_b)
+  checkpoint: "../training/checkpoints/model.pt"  # Path to fine-tuned model checkpoint
+
+inference:
+  device: "cuda"  # Device to run inference on (cuda or cpu)
+  batch_size: 1  # Number of images to process at once
+  confidence_threshold: 0.5  # Minimum confidence score for mask generation 

@@ -1,0 +1,79 @@
+# Training Configuration for SAM2.1 Coral Fine-tuning
+
+model:
+  name: sam2_hiera_large
+  pretrained: true
+  # Fine-tuning control
+  freeze_image_encoder: false
+  freeze_prompt_encoder: false
+  freeze_mask_decoder: false
+  # Memory and attention settings
+  memory_attention:
+    d_model: 256
+    pos_enc_at_input: true
+    num_layers: 4
+  # SAM2.1 specific settings
+  use_high_res_features_in_sam: true
+  multimask_output_in_sam: true
+  iou_prediction_use_sigmoid: true
+
+data:
+  train:
+    root_dir: data/train
+    ann_file: data/train/annotations.json
+  val:
+    root_dir: data/validate
+    ann_file: data/validate/annotations.json
+  num_workers: 10
+  batch_size: 1  # Reduced for better fine-tuning
+  image_size: 1024
+  multiplier: 2  # Dataset multiplier for more training samples
+
+training:
+  epochs: 40  # Reduced from 100
+  # Dual learning rates for different model parts
+  base_lr: 5.0e-6
+  vision_lr: 3.0e-06
+  weight_decay: 0.05
+  warmup_epochs: 5
+  optimizer: adamw
+  scheduler: cosine
+  grad_clip: 0.1  # Reduced from 1.0
+  mixed_precision: bfloat16  # Specified precision
+  checkpoint_dir: checkpoints
+  log_dir: outputs/logs
+  save_freq: 5
+
+# Enhanced augmentations
+augmentation:
+  random_affine:
+    degrees: 25
+    shear: 20
+    image_interpolation: bilinear
+  random_resize:
+    sizes: 1024
+    square: true
+  random_hflip: true
+  color_jitter:
+    brightness: 0.1  # Reduced from 0.4
+    contrast: 0.03   # Reduced from 0.4
+    saturation: 0.03 # Reduced from 0.4
+    hue: null        # Removed hue jitter
+  random_grayscale:
+    p: 0.05
+
+# Loss function configuration
+loss:
+  all:
+    weight_dict:
+      loss_mask: 20  # Higher weight for mask accuracy
+      loss_dice: 1
+      loss_iou: 1
+      loss_class: 1
+
+# Layer-wise learning rate decay
+optim:
+  param_group_modifiers:
+    - _target_: training.optimizer.layer_decay_param_modifier
+      layer_decay_value: 0.9
+      apply_to: 'image_encoder.trunk' 

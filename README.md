@@ -1,85 +1,123 @@
-# Coral Segmentation with SAM2
+# Coral Reef Segmentation with SAM2.1
 
-This project implements coral segmentation using the SAM2 (Segment Anything Model 2) architecture. It includes data processing, training, and visualization tools for coral annotation datasets.
+This project fine-tunes the Segment Anything Model (SAM2.1) specifically for coral reef segmentation, helping it distinguish between coral and non-coral elements (like rocks).
 
 ## Project Structure
 
 ```
 .
-├── config/                    # Training configuration files
-│   └── train_sam2.yaml       # Main training configuration
-├── data/                     # Raw data directory
-│   ├── images/              # Raw images
-│   └── annotations/         # Raw annotations
-├── processed_data/          # Processed dataset
-│   ├── train/              # Training data
-│   │   ├── images/        # Training images
-│   │   └── annotations/   # Training annotations
-│   └── validate/          # Validation data
-│       ├── images/        # Validation images
-│       └── annotations/   # Validation annotations
-├── sam2/                   # SAM2 model implementation
-├── scripts/                # Utility scripts
-│   ├── prepare_data.py    # Data processing script
-│   └── visualize_annotations.py  # Visualization script
-├── outputs/               # Training outputs
-├── checkpoints/          # Model checkpoints
-└── logs/                # Training logs
+├── training/                    # Training pipeline
+│   ├── config/                 # Training configuration files
+│   ├── data/                   # Training data (images + annotations)
+│   │   ├── train/             # Training images and annotations
+│   │   └── validate/          # Validation images and annotations
+│   ├── scripts/               # Training-related scripts
+│   │   ├── prepare_data.py    # Data preparation for training
+│   │   └── train.py          # Training script
+│   └── checkpoints/           # Saved model checkpoints
+│
+└── inference/                  # Inference pipeline
+    ├── config/                # Inference configuration
+    ├── data/                  # Unlabeled images for prediction
+    ├── scripts/              # Inference-related scripts
+    │   └── predict.py        # Prediction script
+    └── outputs/              # Generated masks and predictions
 ```
 
-## Setup Instructions
+## Workflows
 
-1. **Environment Setup**
+### 1. Training Pipeline
+
+The training pipeline fine-tunes SAM2.1 on labeled coral data to improve its ability to distinguish coral from non-coral elements.
+
+#### Setup
+1. Create virtual environment:
    ```bash
-   # Create and activate virtual environment
    python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-   # Install dependencies
+   source venv/bin/activate
    pip install -r requirements.txt
    ```
 
-2. **Data Preparation**
+2. Prepare training data:
    ```bash
-   # Process the dataset
-   python prepare_data.py
+   cd training
+   python scripts/prepare_data.py
    ```
 
-3. **Visualization**
+3. Start training:
    ```bash
-   # Visualize annotations
-   python visualize_annotations.py
+   python scripts/train.py --config config/train_sam2.yaml
    ```
 
-## Training Configuration
+#### Data Requirements
+- Training images (30K+ photos)
+- Corresponding JSON annotations
+- Validation set (recommended 10% of data) for:
+  - Monitoring training progress
+  - Preventing overfitting
+  - Verifying the model's ability to distinguish coral from non-coral elements
+  - Early stopping and hyperparameter tuning
 
-The training configuration is specified in `config/train_sam2.yaml`. Key settings include:
+Note: While SAM2.1 is already a robust model, the validation set is particularly important for fine-tuning as it helps ensure the model is learning to focus on coral-specific features rather than overfitting to the training data.
 
-- Model: sam2.1_hiera_small
-- Learning rate: 0.001
-- Batch size: 16
-- Epochs: 10
-- Optimizer: Adam
+### 2. Inference Pipeline
 
-## GPU Requirements
+The inference pipeline uses the fine-tuned SAM2.1 model to generate masks for unlabeled coral images.
 
-- NVIDIA GPU with CUDA support (recommended: A100)
-- Minimum 16GB VRAM for training
-- CUDA 11.7 or later
+#### Setup
+1. Ensure you have a trained model checkpoint in `training/checkpoints/`
+2. Place unlabeled images in `inference/data/`
+3. Configure inference settings in `inference/config/inference.yaml`
 
-## Scaling to Full Dataset
+#### Usage
+```bash
+cd inference
+# For full inference on all images
+python scripts/predict.py --config config/inference.yaml --checkpoint ../training/checkpoints/model.pt
 
-For the full dataset (30,000 images), consider:
+# To test the pipeline with a single image
+python scripts/test_inference.py
+```
 
-1. **Storage Options**:
-   - Cloud storage (AWS S3, Google Cloud Storage)
-   - Network-attached storage (NAS)
-   - High-performance local storage
+#### Process Details
+1. The inference script will:
+   - Load your fine-tuned SAM2.1 model
+   - Process each image in the input directory
+   - Generate masks using SAM2.1's automatic mask generation
+   - Select the best mask based on confidence scores
+   - Save masks as PNG files in the output directory
 
-2. **Training Considerations**:
-   - Adjust batch size based on GPU memory
-   - Use data parallelism for multi-GPU training
-   - Implement checkpointing for long training runs
+2. Supported image formats:
+   - JPG/JPEG
+   - PNG
+   - TIFF
+
+3. Output:
+   - Each input image will generate a corresponding mask file
+   - Mask files are saved as `{original_filename}_mask.png`
+   - Masks are binary (black and white) images where white represents coral regions
+
+#### Testing
+Before running inference on your full dataset:
+1. Place a test image in `inference/test_data/input/test_image.jpg`
+2. Run `python scripts/test_inference.py`
+3. Check the generated mask in `inference/test_data/output/test_mask.png`
+
+This will help verify that:
+- The model loads correctly
+- Image processing works as expected
+- Mask generation produces reasonable results
+
+## Requirements
+- Python 3.8+
+- PyTorch 2.0+
+- CUDA-capable GPU (recommended)
+- See `requirements.txt` for full list
+
+## Notes
+- Training requires significant GPU memory (recommended: NVIDIA A100)
+- Inference can be run on CPU but will be slower
+- For large datasets, consider using cloud storage for data
 
 ## License
 
