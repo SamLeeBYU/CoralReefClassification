@@ -5,7 +5,7 @@ data:
   output_dir: "outputs/"  # Directory for saving generated masks
 
 model:
-  type: "vit_h"  # Model type (vit_h, vit_l, or vit_b)
+  type: "vit_l"  # Model type (vit_h, vit_l, or vit_b)
   checkpoint: "../training/checkpoints/model.pt"  # Path to fine-tuned model checkpoint
 
 inference:
