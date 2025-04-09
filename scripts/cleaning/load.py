@@ -6,11 +6,11 @@ import matplotlib.pyplot as plt
 import random
 
 class CoralHealthDataset:
-    def __init__(self, data_dir="data/coral"):
+    def __init__(self, data_dirs=["data/coral"]):
         """
         Initializes the dataset loader with the specified directory.
         """
-        self.data_dir = data_dir
+        self.data_dir = data_dirs
         self.image_paths = self._get_image_paths()
         self.dataset = self._create_dataset()
 
@@ -19,11 +19,16 @@ class CoralHealthDataset:
         Retrieves all image file paths from the dataset directory.
         """
         image_extensions = (".png", ".jpg", ".jpeg")
-        return [
-            os.path.join(self.data_dir, fname)
-            for fname in os.listdir(self.data_dir)
-            if fname.lower().endswith(image_extensions)
-        ]
+        all_paths = []
+
+        for data_dir in self.data_dir:
+            if not os.path.isdir(data_dir):
+                continue
+            for fname in os.listdir(data_dir):
+                if fname.lower().endswith(image_extensions):
+                    all_paths.append(os.path.join(data_dir, fname))
+
+        return all_paths
 
     @staticmethod
     def _extract_label(filename):

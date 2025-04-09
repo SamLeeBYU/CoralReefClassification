@@ -20,14 +20,15 @@ class CoralDataPreprocessor:
         self.label_to_idx = self._create_label_mapping()
 
         self.X, self.y = self.process_dataset()
-        self.train_test_split()
 
     def _create_label_mapping(self):
         """
         Creates a mapping from class labels to integer indices.
         """
-        labels = list(set(example["label"] for example in self.dataset))
-        return {label: idx for idx, label in enumerate(sorted(labels))}
+        label_order = ['dead', 'unhealthy', 'healthy']
+        labels = list(set(img["label"] for img in self.dataset))
+        labels = [label for label in label_order if label in labels]
+        return {label: idx for idx, label in enumerate(labels)}
 
     def enhance_image(self, image):
         """
@@ -38,11 +39,11 @@ class CoralDataPreprocessor:
         #Increase contrast
         contrast = ImageEnhance.Contrast(image)
         #1.0 means no change, > 1.0 increases contrast
-        image = contrast.enhance(1) 
+        image = contrast.enhance(1.2) 
 
         #Increase saturation
         saturation = ImageEnhance.Color(image)
-        image = saturation.enhance(1)
+        image = saturation.enhance(1.2)
 
         return np.array(image)
 
@@ -68,9 +69,9 @@ class CoralDataPreprocessor:
         """
         X, y = [], []
         
-        for example in tqdm(self.dataset, desc="Processing images"):
-            image = np.array(example["image"])
-            label = example["label"]
+        for img in tqdm(self.dataset, desc="Processing images"):
+            image = np.array(img["image"])
+            label = img["label"]
 
             #Enhance and preprocess image
             enhanced_image = self.enhance_image(image)
@@ -88,20 +89,10 @@ class CoralDataPreprocessor:
         """
         return self.X, self.y
 
-    def train_test_split(self):
-        """
-        Splits dataset into train and test sets and stores them in the object.
-        """
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
-            self.X, self.y, test_size=self.test_size, random_state=self.random_seed, stratify=self.y
-        )
-
-        print(f"Train set: {self.X_train.shape}, Test set: {self.X_test.shape}")
-
     def summary(self):
         dead = self.X[y == 0]
-        unhealthy = self.X[y == 2]
-        healthy = self.X[y == 1]
+        unhealthy = self.X[y == 1]
+        healthy = self.X[y == 2]
 
         print(f"Dead coral: {dead.shape[0]} samples")
         print(f"Unhealthy coral: {unhealthy.shape[0]} samples")
@@ -175,7 +166,7 @@ class CoralDataPreprocessor:
         print(f"  Blue - Mean: {np.mean(healthy_blue_means):.4f}, Std: {np.mean(healthy_blue_stds):.4f}")
 
 if __name__ == "__main__":
-    coral = CoralHealthDataset(data_dir="data/coral")
+    coral = CoralHealthDataset(data_dir=["data/coral/healthy", "data/coral/unhealthy", "data/coral/dead"])
     preprocessor = CoralDataPreprocessor(dataset_dict=coral.dataset)
     coral_processed = preprocessor.process_dataset()
     X, y = preprocessor.get_data()

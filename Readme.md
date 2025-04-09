@@ -20,11 +20,41 @@ We use **two main datasets**:
 Each image is preprocessed to extract key features, including **RGB pixel values, white pixel proportions, and texture-based features**.
 
 ## 🤖 Machine Learning Approach  
-We explore **three primary machine learning methods**:  
 
-- **Support Vector Machines (SVMs)** – Effective for structured feature-based classification.  
-- **Ordered Logistic Regression with Ridge Penalties** – Used for ordinal classification while preventing overfitting.  
-- **Convolutional Neural Networks (CNNs)** – State-of-the-art deep learning models for image classification.  
+We implemented a multi-model deep learning framework to classify coral health using RGB images. Our pipeline consists of:
+
+- **Three CNNs** trained on preprocessed coral reef images, with two models utilizing random data augmentation.
+- Each model is trained using **categorical cross-entropy loss**.
+- Final predictions are made via a **weighted ensemble** over softmax probabilities.
+
+### 🧪 Pipeline Overview
+
+1. **Data Preprocessing**  
+   Includes normalization, resizing, and optional image enhancements.
+
+2. **Model Training**
+   - **CNN₁**: Base architecture (no augmentation)  
+   - **CNN₂ & CNN₃**: Same architecture with random rotation, flipping, and zoom
+
+3. **Prediction Ensemble**
+   - Ensemble probabilities are computed as:  
+     \[
+     \hat{Y}_{\text{ensemble}} = \sum_m \gamma_m \, \hat{Y}^{(m)}
+     \]
+   - Final predictions are taken as:  
+     \[
+     \hat{y}_i = \arg\max_j \hat{Y}_{ij}
+     \]
+
+4. **Loss Optimization**
+   - The $\gamma$ weights are learned by minimizing an **ecologically sensitive loss function**  
+     defined over the confusion matrix, not raw prediction error.
+   - Optimization is performed via **simulated annealing** using  
+     `scipy.optimize.dual_annealing`, which is robust to non-smooth, non-convex objectives.
+
+---
+
+This ensemble approach allows us to trade off between false positive types (e.g., misclassifying dead coral as healthy) by encoding environmental costs directly into the loss function.
 
 After training, the best-performing model will be used to **automatically classify the Majuro dataset**, allowing us to create a new, labeled dataset for further research.
 
