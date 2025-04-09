@@ -38,12 +38,8 @@ We implemented a multi-model deep learning framework to classify coral health us
 
 3. **Prediction Ensemble**
    - Ensemble probabilities are computed as:  
-     \[
-     \hat{Y}_{\text{ensemble}} = \sum_m \gamma_m \, \hat{Y}^{(m)}
-     \]
-   - Final predictions are taken as:  
-     \[
-     \hat{y}_i = \arg\max_j \hat{Y}_{ij}
+     $\hat{Y}_{\text{ensemble}} = \sum_m \gamma_m \, \hat{Y}^{(m)}$
+   - Final predictions are taken as: $\hat{y}_i = \arg\max_j \hat{Y}_{ij}$
      \]
 
 4. **Loss Optimization**
@@ -62,6 +58,6 @@ After training, the best-performing model will be used to **automatically classi
 Coral reef degradation is accelerating, and traditional monitoring methods are costly and time-intensive. By leveraging **machine learning and automation**, we can provide a **scalable, accurate, and cost-effective** tool for tracking coral reef health globally.
 
 ---
-🔗 **Authors:** Nate Leary, Audrey Moessing, Sam Lee, Andrew Goldston, Aidan Quigley  
+🔗 **Authors:** Nate Leary, Audrey Moessing, Sam Lee, Andrew Goldston, Aidan Quigley, w/ README file drafted by ChatGPT
 📅 **Date:** March 2025  
 📁 **Data Sources:** Hugging Face, Yellowfin Surfzone ASV (Majuro, Marshall Islands)  
