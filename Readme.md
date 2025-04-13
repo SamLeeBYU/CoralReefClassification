@@ -38,8 +38,9 @@ We implemented a multi-model deep learning framework to classify coral health us
 
 3. **Prediction Ensemble**
    - Ensemble probabilities are computed as:  
-     $\hat{Y}_{\text{ensemble}} = \sum_m \gamma_m \hat{Y}^{(m)}$
-   - Final predictions are taken as: $\hat{y}_i = \arg\max_j \hat{Y}_{ij}$
+      $\hat{Y}_{\text{ensemble}} = \sum_m \gamma_m \hat{Y}^{(m)}$
+   - Final predictions are taken as: 
+      $\hat{y}_i = \arg\max_j \hat{Y}_{ij}$
 
 4. **Loss Optimization**
    - The $\gamma$ weights are learned by minimizing an **ecologically sensitive loss function**  
@@ -58,5 +59,5 @@ Coral reef degradation is accelerating, and traditional monitoring methods are c
 
 ---
 🔗 **Authors:** Nate Leary, Audrey Moessing, Sam Lee, Andrew Goldston, Aidan Quigley, w/ README file drafted by ChatGPT
-📅 **Date:** March 2025  
+📅 **Date:** April 2025  
 📁 **Data Sources:** Hugging Face, Yellowfin Surfzone ASV (Majuro, Marshall Islands)  

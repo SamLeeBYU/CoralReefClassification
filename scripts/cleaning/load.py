@@ -4,13 +4,33 @@ from PIL import Image
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import random
+import json
 
 class CoralHealthDataset:
-    def __init__(self, data_dirs=["data/coral"]):
+    def __init__(self, data_dirs=["data/coral"], image_size=(128, 128), annotations=None, annotations_dict = {
+        #For the WHOI labels
+        "coral": "healthy",
+        "coral_bleach": "unhealthy"
+    }):
         """
         Initializes the dataset loader with the specified directory.
         """
         self.data_dir = data_dirs
+        self.annotations = annotations
+        self.image_size = image_size
+
+        if self.annotations is not None:
+            with open(annotations, "r") as f:
+                label_data = json.load(f)
+            
+                self.labels = {os.path.basename(k): v for k, v in label_data.items()}
+                #Change the labels to the annotations specified in the dictionary
+                for k, v in self.labels.items():
+                    if v in annotations_dict:
+                        self.labels[k] = annotations_dict[v]
+                    else:
+                        self.labels[k] = "unknown"
+
         self.image_paths = self._get_image_paths()
         self.dataset = self._create_dataset()
 
@@ -30,12 +50,15 @@ class CoralHealthDataset:
 
         return all_paths
 
-    @staticmethod
-    def _extract_label(filename):
+    def _extract_label(self, filename):
         """
         Extracts the label from the filename. Assumes format: 'label_xxx.png'
         """
-        return filename.split("_")[0]
+        if self.annotations is None:
+            return filename.split("_")[0]
+        else:
+            #Get the label from the filename key in the json file
+            return self.labels.get(filename, "unknown")
 
     def _load_image(self, file_path):
         """
@@ -50,7 +73,8 @@ class CoralHealthDataset:
         data = []
         for img_path in tqdm(self.image_paths, desc="Loading images"):
             label = self._extract_label(os.path.basename(img_path))
-            image = self._load_image(img_path)
+            #load in image and resize it
+            image = self._load_image(img_path).resize(self.image_size)
             data.append({"image": image, "label": label})
 
         return Dataset.from_list(data)
@@ -76,5 +100,5 @@ class CoralHealthDataset:
         plt.show()
 
 if __name__ == "__main__":
-    coral = CoralHealthDataset(data_dir="data/coral")
+    coral = CoralHealthDataset(data_dirs="data/coral")
     coral.preview_data()

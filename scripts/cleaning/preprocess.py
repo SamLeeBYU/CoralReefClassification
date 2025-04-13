@@ -6,10 +6,10 @@ from PIL import Image, ImageEnhance
 from datasets import DatasetDict
 from load import CoralHealthDataset
 from tqdm import tqdm
-from sklearn.model_selection import train_test_split
 
 class CoralDataPreprocessor:
-    def __init__(self, dataset_dict: DatasetDict, image_size=(128, 128), test_size=0.2, random_seed=42):
+    def __init__(self, dataset_dict: DatasetDict, image_size=(128, 128), test_size=0.2, 
+                 label_order = ['dead', 'unhealthy', 'healthy'], random_seed=42):
         """
         Initializes the preprocessor with the dataset and image size.
         """
@@ -17,6 +17,7 @@ class CoralDataPreprocessor:
         self.image_size = image_size
         self.test_size = test_size
         self.random_seed = random_seed
+        self.label_order = label_order
         self.label_to_idx = self._create_label_mapping()
 
         self.X, self.y = self.process_dataset()
@@ -25,10 +26,9 @@ class CoralDataPreprocessor:
         """
         Creates a mapping from class labels to integer indices.
         """
-        label_order = ['dead', 'unhealthy', 'healthy']
-        labels = list(set(img["label"] for img in self.dataset))
-        labels = [label for label in label_order if label in labels]
-        return {label: idx for idx, label in enumerate(labels)}
+        # labels = list(set(img["label"] for img in self.dataset))
+        # labels = [label for label in self.label_order if label in labels]
+        return {label: idx for idx, label in enumerate(self.label_order)}
 
     def enhance_image(self, image):
         """
