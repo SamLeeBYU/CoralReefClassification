@@ -40,7 +40,7 @@ We developed a multi-model deep learning framework to classify coral reef health
    - These predictions are recalibrated through a post-training rescaling procedure that minimizes squared error between the predicted and true class indicators.
    - The final ensemble prediction is computed as a weighted sum of recalibrated outputs:  
   
-     $\hat{Y}_{\text{ensemble}} = \sum_{m=1}^M w_m \hat{Y}^{(m)^\star}$
+     $`\hat{Y}_{\text{ensemble}} = \sum_{m=1}^M w_m \hat{Y}^{(m)^\star}`$
      
      where the $\hat{Y}^{(m)^\star}$ are recalibrated model predictions and **w** is a learned convex weight vector.
 
