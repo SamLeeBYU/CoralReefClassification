@@ -39,10 +39,12 @@ We developed a multi-model deep learning framework to classify coral reef health
    - Each model outputs class probabilities via a softmax layer.
    - These predictions are recalibrated through a post-training rescaling procedure that minimizes squared error between the predicted and true class indicators.
    - The final ensemble prediction is computed as a weighted sum of recalibrated outputs:  
-     ```
-     Ŷ_ensemble = ∑ₘ wₘ ⋅ Ŷ^{(m)*}
-     ```
-     where the Ŷ^{(m)*} are recalibrated model predictions and **w** is a learned convex weight vector.
+  
+     $$
+     \hat{Y}_{\text{ensemble}} = \sum_{m=1}^M w_m \hat{Y}^{(m)^\star}
+     $$
+     
+     where the $\hat{Y}^{(m)^\star}$ are recalibrated model predictions and **w** is a learned convex weight vector.
 
 4. **Loss Optimization**  
    - We define an **ecologically sensitive loss function** that penalizes misclassifications proportionally to their ecological severity. This loss is computed over the **confusion matrix** rather than raw prediction error.
@@ -56,6 +58,93 @@ After training, the best-performing model will be used to **automatically classi
 
 ## 📌 Why This Matters  
 Coral reef degradation is accelerating, and traditional monitoring methods are costly and time-intensive. By leveraging **machine learning and automation**, we can provide a **scalable, accurate, and cost-effective** tool for tracking coral reef health globally.
+
+---
+
+## 🔁 Reproducing Results
+
+To replicate the full pipeline from preprocessing to final ensemble evaluation, follow the steps below. All relevant training, recalibration, optimization, and saving routines are encapsulated in the `CoralEnsembleTrainer` class defined in [`cnn.py`](cnn.py).
+
+### 🔧 Requirements
+
+Ensure you have the following Python packages installed:
+
+- `tensorflow`
+- `numpy`
+- `scikit-learn`
+- `matplotlib`
+- `scipy`
+
+### 🧪 Steps to Reproduce
+
+1. **Preprocess the Data**
+
+The pipeline loads and preprocesses coral reef images from the specified directory. Images are resized to 128×128 and enhanced (saturation/contrast). Labels are automatically inferred from directory names.
+
+2. **Train Ensemble Models**
+
+Preprocessing and model training can be done in one step by navigating to the project directory
+
+```
+git clone CoralReefClassification
+cd CoralReefClassification
+python scripts/cleaning/cnn.py
+```
+
+This will reproduce the out-of-sample confusion matrix generated from the model trained on the HuggingFace data.
+
+Equivalently, if you navigate to the scripts directory,
+
+```
+cd CoralReefClassification/cleaning
+```
+
+And start a python file with the following requirements,
+
+```python
+from preprocess import CoralDataPreprocessor
+from load import CoralHealthDataset
+
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras import layers, models
+from sklearn.model_selection import train_test_split, KFold
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from scipy.optimize import dual_annealing
+import matplotlib.pyplot as plt
+
+import os
+import json
+```
+Then you can load the pre-trained model by
+
+```python
+ model = CoralEnsembleTrainer(None, None, num_classes=3, epochs=100)
+ model.load(path="models/beta")
+```
+
+And then run,
+
+```python
+ preds = model.predict(model.X_test)
+ model.plot_confusion_matrix(model.y_test, preds)
+```
+
+3. Load in the model trained on the WHOI data
+
+Due to data privacy, we do not include the raw images from WHOI. We do include our trained model on the WHOI dataset which can be reloaded using the same code as above, except you can replace this code:
+
+```python
+ model = CoralEnsembleTrainer(None, None, num_classes=3, epochs=100)
+ model.load(path="models/beta")
+```
+
+With:
+
+```python
+ model = CoralEnsembleTrainer(None, None, num_classes=3, epochs=100)
+ model.load(path="models/whoi")
+```
 
 ---
 
