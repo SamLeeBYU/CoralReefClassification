@@ -21,32 +21,32 @@ Each image is preprocessed to extract key features, including **RGB pixel values
 
 ## 🤖 Machine Learning Approach  
 
-We implemented a multi-model deep learning framework to classify coral health using RGB images. Our pipeline consists of:
-
-- **Three CNNs** trained on preprocessed coral reef images, with two models utilizing random data augmentation.
-- Each model is trained using **categorical cross-entropy loss**.
-- Final predictions are made via a **weighted ensemble** over softmax probabilities.
+We developed a multi-model deep learning framework to classify coral reef health using RGB images. Our approach combines convolutional neural networks (CNNs) with a novel, ecologically sensitive loss function, enabling predictions that account not just for classification accuracy but also for the asymmetric severity of ecological misclassifications.
 
 ### 🧪 Pipeline Overview
 
 1. **Data Preprocessing**  
-   Includes normalization, resizing, and optional image enhancements.
+   Raw images are normalized, resized to 128×128 pixels, and optionally enhanced via biologically motivated contrast and saturation adjustments. Labels are extracted and mapped to the ordinal class set: *dead*, *unhealthy*, *healthy*.
 
-2. **Model Training**
-   - **CNN₁**: Base architecture (no augmentation)  
-   - **CNN₂ & CNN₃**: Same architecture with random rotation, flipping, and zoom
+2. **Model Training**  
+   We train three CNNs on the processed dataset:
+   - **CNN₁**: A baseline architecture trained without augmentation.
+   - **CNN₂ & CNN₃**: Identical architecture augmented with random rotation, horizontal/vertical flipping, and zooming to promote robustness to geometric and resolution variations.
 
-3. **Prediction Ensemble**
-   - Ensemble probabilities are computed as:  
-      $\hat{Y}_{\text{ensemble}} = \sum_m \gamma_m \hat{Y}^{(m)}$
-   - Final predictions are taken as: 
-      $\hat{y}_i = \arg\max_j \hat{Y}_{ij}$
+   All models are trained using the **categorical cross-entropy (CCE)** loss and optimized via the Adam algorithm.
 
-4. **Loss Optimization**
-   - The $\gamma$ weights are learned by minimizing an **ecologically sensitive loss function**  
-     defined over the confusion matrix, not raw prediction error.
-   - Optimization is performed via **simulated annealing** using  
-     `scipy.optimize.dual_annealing`, which is robust to non-smooth, non-convex objectives.
+3. **Prediction Ensemble**  
+   - Each model outputs class probabilities via a softmax layer.
+   - These predictions are recalibrated through a post-training rescaling procedure that minimizes squared error between the predicted and true class indicators.
+   - The final ensemble prediction is computed as a weighted sum of recalibrated outputs:  
+     ```
+     Ŷ_ensemble = ∑ₘ wₘ ⋅ Ŷ^{(m)*}
+     ```
+     where the Ŷ^{(m)*} are recalibrated model predictions and **w** is a learned convex weight vector.
+
+4. **Loss Optimization**  
+   - We define an **ecologically sensitive loss function** that penalizes misclassifications proportionally to their ecological severity. This loss is computed over the **confusion matrix** rather than raw prediction error.
+   - To learn the optimal ensemble weights **w**, we minimize this non-differentiable loss using **simulated annealing** via `scipy.optimize.dual_annealing`, a global optimization routine well-suited for rugged objective landscapes.
 
 ---
 
@@ -58,6 +58,9 @@ After training, the best-performing model will be used to **automatically classi
 Coral reef degradation is accelerating, and traditional monitoring methods are costly and time-intensive. By leveraging **machine learning and automation**, we can provide a **scalable, accurate, and cost-effective** tool for tracking coral reef health globally.
 
 ---
+
 🔗 **Authors:** Nate Leary, Audrey Moessing, Sam Lee, Andrew Goldston, Aidan Quigley, w/ README file drafted by ChatGPT
+
 📅 **Date:** April 2025  
+
 📁 **Data Sources:** Hugging Face, Yellowfin Surfzone ASV (Majuro, Marshall Islands)  
