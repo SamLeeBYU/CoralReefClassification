@@ -61,7 +61,7 @@ Coral reef degradation is accelerating, and traditional monitoring methods are c
 
 ## 🔁 Reproducing Results
 
-To replicate the full pipeline from preprocessing to final ensemble evaluation, follow the steps below. All relevant training, recalibration, optimization, and saving routines are encapsulated in the `CoralEnsembleTrainer` class defined in [`cnn.py`](cnn.py).
+To replicate the full pipeline from preprocessing to final ensemble evaluation, follow the steps below. All relevant training, recalibration, optimization, and saving routines are encapsulated in the `CoralEnsembleTrainer` class defined in [`cnn.py`](scripts/cleaning/cnn.py).
 
 ### 🔧 Requirements
 
