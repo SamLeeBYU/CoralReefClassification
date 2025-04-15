@@ -26,8 +26,6 @@ class CoralDataPreprocessor:
         """
         Creates a mapping from class labels to integer indices.
         """
-        # labels = list(set(img["label"] for img in self.dataset))
-        # labels = [label for label in self.label_order if label in labels]
         return {label: idx for idx, label in enumerate(self.label_order)}
 
     def enhance_image(self, image):
@@ -51,7 +49,7 @@ class CoralDataPreprocessor:
         """
         Extracts CNN-compatible features by resizing and normalizing the image.
         """
-        # Convert to OpenCV format (BGR) if needed
+        # Convert to OpenCV format if needed
         if isinstance(image, Image.Image):
             image = np.array(image)
 

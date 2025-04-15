@@ -1,3 +1,5 @@
+#Current Work (under construction): Design an optimization routine that finds best weight vector for ensemble prediction without using simulated annealing
+
 import numpy as np
 
 def ensemble_loss(preds, y, omega_init=None):
@@ -13,6 +15,8 @@ def ensemble_loss(preds, y, omega_init=None):
     return loss
 
 if __name__ == "__main__":
+
+    #Simulation
 
     n = 5 #number of observations
     k = 2 #number of classes

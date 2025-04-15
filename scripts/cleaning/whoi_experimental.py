@@ -4,11 +4,14 @@ from cnn import CoralEnsembleTrainer
 import numpy as np
 
 loss_matrix_WHOI = np.array([
-                [0, 1],  # True class 2 (Unhealthy)
-                [0, 0]# True class 3 (Healthy)
+                [0, 2],  # True class 2 (Unhealthy)
+                [1, 0]   # True class 3 (Healthy)
             ])
 
 if __name__ == "__main__":
+
+    #Throw in the WHOI training data (875) images into our ML pipeline
+
     coral = CoralHealthDataset(data_dirs=["data/WHOI"], annotations="data/WHOI/annotations.json")
     preprocessor = CoralDataPreprocessor(dataset_dict=coral.dataset)
     coral_processed = preprocessor.process_dataset()
@@ -17,6 +20,7 @@ if __name__ == "__main__":
     model = CoralEnsembleTrainer(X, y-1, num_classes=2, epochs = 50, loss_matrix=loss_matrix_WHOI)
 
     #Train and Calibrate (you don't need to do this if you are loading in a model)
+    ##############################################################################
     model.train_models()
     for m in range(model.m):
         model.recalibrate_model(m, cv=5)

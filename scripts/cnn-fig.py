@@ -4,6 +4,8 @@ import visualkeras
 
 from PIL import ImageColor
 
+#This script uses the visualkeras package to visualize the architecture of our CNN models
+
 color_theme = {
     'InputLayer': '#0A192F',      # deep navy
     'Conv2D': '#0077B6',          # strong azure
@@ -27,17 +29,11 @@ if use_augmentation:
 
 #Convolution Block 1
 model.add(layers.Conv2D(32, (3, 3), activation='relu'))
-#model.add(layers.BatchNormalization())
-# model.add(layers.Conv2D(32, (3, 3), padding='same', activation='relu'))
-# model.add(layers.BatchNormalization())
 model.add(layers.MaxPooling2D((2, 2)))
 model.add(layers.Dropout(0.25))
 
 #Convolution Block 2
 model.add(layers.Conv2D(64, (3, 3), activation='relu'))
-#model.add(layers.BatchNormalization())
-# model.add(layers.Conv2D(64, (3, 3), padding='same', activation='relu'))
-# model.add(layers.BatchNormalization())
 model.add(layers.MaxPooling2D((2, 2)))
 model.add(layers.Dropout(0.35))
 
@@ -45,11 +41,9 @@ model.add(layers.Dropout(0.35))
 model.add(layers.Flatten())
 
 model.add(layers.Dense(128, activation='relu'))
-#model.add(layers.BatchNormalization())
 model.add(layers.Dropout(0.35))
 
 model.add(layers.Dense(128, activation='relu'))
-#model.add(layers.BatchNormalization())
 model.add(layers.Dropout(0.3))
 
 model.add(layers.Dense(3, activation='softmax'))

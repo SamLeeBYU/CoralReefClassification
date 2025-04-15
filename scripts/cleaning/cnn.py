@@ -15,6 +15,16 @@ import json
 class CoralEnsembleTrainer:
     def __init__(self, X, y, num_classes=3, loss_matrix=None, epochs=32, batch_size=32):
 
+        """
+        Parameters:
+        - X: Feature matrix (images) nx128x128x3 np.array
+        - y: Labels nx1 np.array
+        - num_classes: Number of Classifications (Dead, Unhealthy, Healthy)
+        - loss_matrix: Optional ecological loss matrix
+        - epochs: Number of epochs to train each model
+        - batch_size: Batch size for training
+        """
+
         self.m = 3 #Number of models in the ensemble
         self.epochs = epochs
         self.batch_size = batch_size
@@ -29,72 +39,63 @@ class CoralEnsembleTrainer:
                 [0,       omega[1], omega[3]],  # True class 1 (Dead)
                 [omega[0], 0,       omega[1]],  # True class 2 (Unhealthy)
                 [omega[2], omega[0], 0]         # True class 3 (Healthy)
-            ]).T
+            ])
             self.loss_matrix = Omega
 
-        #Load in the dataset from preprocess.py
+        #Save full dataset
         self.X = X
         self.y = y
 
-        #Perform a train-test split
+        # Split into train/test sets with stratification (unless being loaded in from models/)
+        if X is not None and y is not None: 
         X_train, X_test, y_train, y_test = train_test_split(self.X, self.y, test_size=0.2, random_state=484, stratify=self.y)
-        self.X_train, self.X_test = X_train, X_test
-        self.y_train, self.y_test = y_train, y_test
+            self.X_train, self.X_test = X_train, X_test
+            self.y_train, self.y_test = y_train, y_test
 
-        #This is an annoying thing about tensor flow: We have to make dummy variables to indicate the discrete classes
-        self.y_train_cat = tf.keras.utils.to_categorical(self.y_train, self.num_classes)
-        self.y_test_cat = tf.keras.utils.to_categorical(self.y_test, self.num_classes)
-        
-        self.models = []
-        self.gammas = np.ones((self.m, self.num_classes))
-        self.omega = np.ones(self.m)/self.m
+            # Convert labels to one-hot encoding
+            self.y_train_cat = tf.keras.utils.to_categorical(self.y_train, self.num_classes)
+            self.y_test_cat = tf.keras.utils.to_categorical(self.y_test, self.num_classes)
+
+        self.models = []  #List to store CNNs
+        self.gammas = np.ones((self.m, self.num_classes))  #Recalibration weights per model
+        self.omega = np.ones(self.m)/self.m  #Ensemble weights
+
 
     def build_model(self, use_augmentation=False):
+        """Constructs and compiles a CNN model."""
         model = models.Sequential()
         model.add(layers.Input(shape=(128, 128, 3)))
 
-        #Add "random" data augmentation layers
         if use_augmentation:
             model.add(layers.RandomRotation(0.2))
             model.add(layers.RandomFlip('horizontal_and_vertical'))
             model.add(layers.RandomZoom(0.2))
 
-        #Convolution Block 1
+        #Convolutional Layers
         model.add(layers.Conv2D(32, (3, 3), activation='relu'))
-        #model.add(layers.BatchNormalization())
         model.add(layers.Conv2D(32, (3, 3), padding='same', activation='relu'))
-        # model.add(layers.BatchNormalization())
         model.add(layers.MaxPooling2D((2, 2)))
         model.add(layers.Dropout(0.25))
 
-        #Convolution Block 2
         model.add(layers.Conv2D(64, (3, 3), activation='relu'))
-        #model.add(layers.BatchNormalization())
         model.add(layers.Conv2D(64, (3, 3), padding='same', activation='relu'))
-        # model.add(layers.BatchNormalization())
         model.add(layers.MaxPooling2D((2, 2)))
         model.add(layers.Dropout(0.35))
 
-        #Fully connected layers
+        #Dense Layers
         model.add(layers.Flatten())
-
         model.add(layers.Dense(128, activation='relu'))
-        #model.add(layers.BatchNormalization())
         model.add(layers.Dropout(0.35))
-
         model.add(layers.Dense(128, activation='relu'))
-        #model.add(layers.BatchNormalization())
         model.add(layers.Dropout(0.3))
-
         model.add(layers.Dense(self.num_classes, activation='softmax'))
 
-        #We use a categorical crossentropy loss function since it has a smooth gradient
+        #Use the CCE loss function (smooth gradient for back propogation)
         model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
         return model
 
     def train_models(self):
-
-        #We train three models (though this could be extended)
+        """Trains m # of CNNs with different augmentation strategies."""
         model_configs = [False, True, True][0:self.m]
         for aug in model_configs:
             model = self.build_model(use_augmentation=aug)
@@ -103,10 +104,12 @@ class CoralEnsembleTrainer:
 
     #Get the set of predictions from each model
     def get_predictions(self, X):
+        """Returns the recalibrated prediction probabilities from each model."""
         return [self.models[m].predict(X) * self.gammas[m].reshape(1, -1) for m in range(self.m)]
 
     #Our final ensemble prediction method to compute the "probability" of each class
     def predict_proba(self, X, omega=None):
+        """Returns the ensemble probability prediction using weights omega."""
         if omega is None:
             omega = self.omega
         #(Calibrated) predictions from each model
@@ -115,16 +118,20 @@ class CoralEnsembleTrainer:
 
     #Final ensemble prediction method
     def predict(self, X):
+        """Returns the class prediction by taking argmax over ensemble outputs."""
         proba = self.predict_proba(X)
         return np.argmax(proba, axis=1)
 
     #Our specialized loss function as defined in the paper
     def ecological_loss(self, y_preds, y_true):
+        """Computes the ecologically sensitive loss given predictions and true labels."""
         cm = confusion_matrix(y_true, y_preds, labels=list(range(self.num_classes)))
         cm_normalized = cm / np.sum(cm)
         return np.sum(cm_normalized * self.loss_matrix) / (np.sum(self.loss_matrix) / (self.num_classes**2 - self.num_classes))
-    
+
     def eco_optimize(self, omega, y_preds, y_true):
+        """Objective function for ecological ensemble weight optimization."""
+
         #Constraint
         omega = omega/np.sum(omega)
 
@@ -138,14 +145,15 @@ class CoralEnsembleTrainer:
 
     @staticmethod
     def compute_gamma(Y, X):
+        """Solves the closed-form solution to find gamma weights."""
 
         numerator = np.sum(X * Y, axis=0)  # Sum over i: [sum(x_i1 y_i1), ..., sum(x_ik y_ik)]
         denominator = np.sum(X**2, axis=0)  # [sum(x_i1^2), ..., sum(x_ik^2)]
-        
+
         lambda_num = 1 - np.sum(numerator / denominator)
         lambda_den = np.sum(1 / denominator)
         lambda_val = 2 * lambda_num / lambda_den
-        
+
         gamma = (lambda_val / 2 + numerator) / denominator
         return gamma
 
@@ -158,6 +166,7 @@ class CoralEnsembleTrainer:
             y = self.y_train_cat
             gamma_star = self.compute_gamma(x_mat, y)
         else:
+            #Using cross-validation, we select the gamma vector that minimizes out-of-sample ecological loss
             kf = KFold(n_splits=cv, shuffle=True)
             gammas = []
             losses = []
@@ -166,6 +175,9 @@ class CoralEnsembleTrainer:
                 X_test, y_test = self.X[val_idx], self.y[val_idx]
                 x_mat = model_m.predict(X_fold)
                 y = y_fold
+                #The Y matrix that we pass in needs to be dimension nxk
+                #Each entry Y_i is defined over the space {0, 1}^k : sum(Y_ij) = 1
+                #In other words, it's an indicator for whether the observation belongs to class j 
                 y_cat = np.eye(self.num_classes)[y]
                 gamma = self.compute_gamma(x_mat, y_cat)
                 gammas.append(gamma)
@@ -181,10 +193,10 @@ class CoralEnsembleTrainer:
     def optimize_omega(self, cv=0):
         if cv <= 1:
             y_preds = self.get_predictions(self.X_train)
-            result = dual_annealing(self.ecological_loss, bounds=[(-1, 1)] * len(y_preds), args=(y_preds, self.y_train))
+            result = dual_annealing(self.ecological_loss, bounds=[(0, 1)]*self.m, args=(y_preds, self.y_train))
             self.omega = result.x / np.sum(result.x)
         else:
-            #We use k-fold CV to find the overall best gamma weights
+            #We use k-fold CV to find the overall best weights
             kf = KFold(n_splits=cv, shuffle=True, random_state=42)
             omegas = []
             losses = []
@@ -200,11 +212,13 @@ class CoralEnsembleTrainer:
                 y_pred = self.predict_proba(X_test, omega)
                 y_pred_labels = np.argmax(y_pred, axis=1)
                 losses.append(self.ecological_loss(y_pred_labels, y_test))
+            #Select the weight vector that gives the best out-of-sample ecological loss
             self.omega = omegas[np.argmin(losses)]
 
+    #Save a trained model
     def save(self, path="models/beta"):
         os.makedirs(path, exist_ok=True)
-        
+
         #Save each submodel
         for i, model in enumerate(self.models):
             model.save(os.path.join(path, f"cnn_model_{i}.keras"))
@@ -222,6 +236,7 @@ class CoralEnsembleTrainer:
                 "loss_matrix": self.loss_matrix.tolist()
             }, f)
 
+    #Load in a saved model
     def load(self, path="models/beta"):
         self.models = []
         for i in range(self.m):
@@ -235,6 +250,7 @@ class CoralEnsembleTrainer:
             self.num_classes = cfg["num_classes"]
             self.loss_matrix = np.array(cfg["loss_matrix"])
 
+    #Display results
     def plot_confusion_matrix(self, y_true, y_pred, display_labs=None):
         labels = [0, 1, 2]  # Dead, Unhealthy, Healthy
         display_labels = ["Dead", "Unhealthy", "Healthy"]
@@ -266,6 +282,7 @@ if __name__ == "__main__":
     model.load(path="models/beta")
 
     #Train and Calibrate (you don't need to do this if you are loading in a model)
+    ##############################################################################
     model.train_models()
     for m in range(model.m):
         model.recalibrate_model(m, cv=5)
